@@ -179,71 +179,46 @@
             }
         }
 
-        // 背景
-        // オーロラ風の背景シェーダー
-        const auroraShader = `
-            void main() {
-
-                gl_FragColor = vec4(1,1,1,1); // 白と黒のチェックボード
-            }
-        `;
-        const vertex_shader = `
-            // 頂点シェーダー
-            attribute vec3 position; // 頂点の位置
-
-            void main() {
-           
-                gl_Position = vec4(position, 1.0); // 頂点の位置を設定
-            }
-        `;
-
-        const background = new THREE.Mesh(
-          new THREE.PlaneBufferGeometry(2.0, 2.0),
-          new THREE.RawShaderMaterial({
-            uniforms: {
-              resolution: {value: new THREE.Vector2(window.innerWidth, window.innerHeight)},
-              time: {value: 0.0}
-            },
-            vertexShader: vertex_shader,
-            fragmentShader: auroraShader,
-            depthTest: false, // no depth test
-          })
-        );
-        background.renderOrder = -1; // rendering first
-
-        // const background = new THREE.Mesh(geometry, material);
-        // background.position.z = -5; // 背景をカメラの後ろに配置
-        scene.add(background);
-
-
         // アニメーション設定
+        let cameraWidth = 10; // 初期カメラの幅
+        let cameraHeight = (cameraWidth * window.innerHeight) / window.innerWidth; // 初期高さ
         function animate() {
             requestAnimationFrame(animate);
+            cameraWidth = 10; // カメラの幅
+            cameraHeight = (cameraWidth * window.innerHeight) / window.innerWidth; // アスペクト比に基づく高さ
+            const toRemove = [];
             for (const cube of cubes) {
                 // 画面の境界で反射
-                if (cube.position.x > 5 || cube.position.x < -5) {
+                cube.position.add(cube.userData.velocity);
+                if (cube.position.x > cameraWidth / 2 || cube.position.x < -cameraWidth / 2) {
                     cube.userData.velocity.x *= -1; // X方向で反射
                 }
-                if (cube.position.y > 5 || cube.position.y < -5) {
+                if (cube.position.y > cameraHeight / 2 || cube.position.y < -cameraHeight / 2) {
                     cube.userData.velocity.y *= -1; // Y方向で反射
                 }
                 cube.rotation.x += 0.01; // X軸周りに回転
                 cube.rotation.y += 0.01; // Y軸周りに回転
-                cube.position.add(cube.userData.velocity);
+                // 画面外に出たキューブのインデックスを保存
+                if (cube.position.x < -cameraWidth / 2 - 1 || cube.position.x > cameraWidth / 2 +1 ||
+                    cube.position.y < -cameraHeight / 2 -1|| cube.position.y > cameraHeight / 2 +1) {
+                    toRemove.push(cube); // 削除対象として保存
+                }
             }
-            // // キューブの位置を速度に基づいて更新
-            // if (selectedCube) {
-            //     selectedCube.position.add(selectedCube.userData.velocity.clone().multiplyScalar(0.1));
-            // }
-             // 衝突判定
-             for (let i = 0; i < cubes.length; i++) {
+              
+              // 衝突判定
+            for (let i = 0; i < cubes.length; i++) {
                 for (let j = i + 1; j < cubes.length; j++) {
                     checkCollision(cubes[i], cubes[j]);
                 }
             }
-
-            //背景
-            background.material.uniforms.time.value += 0.05; // 時間を使って動きを加える
+            // 削除対象のキューブをシーンから削除し、配列からも削除
+            for (const cube of toRemove) {
+                scene.remove(cube); // シーンから削除
+                const index = cubes.indexOf(cube);
+                if (index > -1) {
+                    cubes.splice(index, 1); // キューブ配列から削除
+                }
+            }
 
             // シーンを描画
             renderer.render(scene, camera);
@@ -257,6 +232,9 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            // カメラの幅と高さを再計算
+            cameraWidth = 10; // 必要に応じて調整
+            cameraHeight = (cameraWidth * window.innerHeight) / window.innerWidth; // アスペクト比に基づく高さ
         });
     </script>
 </body>
