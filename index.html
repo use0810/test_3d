@@ -182,12 +182,14 @@
         // アニメーション設定
         function animate() {
             requestAnimationFrame(animate);
+            const halfWidth = window.innerWidth / 2 / 100; // 画面幅の半分を使用（スケールを調整）
+            const halfHeight = window.innerHeight / 2 / 100; // 画面高さの半分を使用（スケールを調整）
             for (const cube of cubes) {
                 // 画面の境界で反射
-                if (cube.position.x > 5 || cube.position.x < -5) {
+                if (cube.position.x > halfWidth || cube.position.x < -halfWidth) {
                     cube.userData.velocity.x *= -1; // X方向で反射
                 }
-                if (cube.position.y > 5 || cube.position.y < -5) {
+                if (cube.position.y > halfHeight || cube.position.y < -halfHeight) {
                     cube.userData.velocity.y *= -1; // Y方向で反射
                 }
                 cube.rotation.x += 0.01; // X軸周りに回転
