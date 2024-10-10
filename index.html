@@ -180,29 +180,48 @@
         }
 
         // アニメーション設定
-        let cameraWidth = 10; // 初期カメラの幅
-        let cameraHeight = (cameraWidth * window.innerHeight) / window.innerWidth; // 初期高さ
         function animate() {
             requestAnimationFrame(animate);
-            cameraWidth = 10; // カメラの幅
-            cameraHeight = (cameraWidth * window.innerHeight) / window.innerWidth; // アスペクト比に基づく高さ
             const toRemove = [];
             for (const cube of cubes) {
                 // 画面の境界で反射
+
+                // スクリーンの端のワールド座標を更新
+                const projectionMatrix = camera.projectionMatrix.clone();
+                const viewMatrix = camera.matrixWorldInverse.clone();
+
+                const screenTopLeft = new THREE.Vector3(-1, 1, -1);
+                screenTopLeft.applyMatrix4(projectionMatrix.clone().invert());
+                screenTopLeft.applyMatrix4(viewMatrix.clone().invert());
+
+                const screenBottomRight = new THREE.Vector3(1, -1, -1);
+                screenBottomRight.applyMatrix4(projectionMatrix.clone().invert());
+                screenBottomRight.applyMatrix4(viewMatrix.clone().invert());
+
+                const screenBounds = {
+                    minX: screenTopLeft.x,
+                    maxX: screenBottomRight.x,
+                    minY: screenTopLeft.y,
+                    maxY: screenBottomRight.y
+                };
+                console.log("最小Y値"+screenTopLeft.y *50)
+                console.log("最台Y値"+screenBottomRight.y *100)
+                console.log("cubey"+cube.position.y)
+
                 cube.position.add(cube.userData.velocity);
-                if (cube.position.x > cameraWidth / 2 || cube.position.x < -cameraWidth / 2) {
+                if (cube.position.x > screenBounds.maxX *50 || cube.position.x < screenBounds.minX*50 ) {
                     cube.userData.velocity.x *= -1; // X方向で反射
                 }
-                if (cube.position.y > cameraHeight / 2 || cube.position.y < -cameraHeight / 2) {
+                if (cube.position.y > screenBounds.minY *50 || cube.position.y < screenBounds.maxY *50) {
                     cube.userData.velocity.y *= -1; // Y方向で反射
                 }
                 cube.rotation.x += 0.01; // X軸周りに回転
                 cube.rotation.y += 0.01; // Y軸周りに回転
                 // 画面外に出たキューブのインデックスを保存
-                if (cube.position.x < -cameraWidth / 2 - 1 || cube.position.x > cameraWidth / 2 +1 ||
-                    cube.position.y < -cameraHeight / 2 -1|| cube.position.y > cameraHeight / 2 +1) {
-                    toRemove.push(cube); // 削除対象として保存
-                }
+                // if (cube.position.x < -cameraWidth / 2 - 1 || cube.position.x > cameraWidth / 2 +1 ||
+                //     cube.position.y < -cameraHeight / 2 -1|| cube.position.y > cameraHeight / 2 +1) {
+                //     toRemove.push(cube); // 削除対象として保存
+                // }
             }
               
               // 衝突判定
@@ -233,8 +252,9 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
             // カメラの幅と高さを再計算
-            cameraWidth = 10; // 必要に応じて調整
-            cameraHeight = (cameraWidth * window.innerHeight) / window.innerWidth; // アスペクト比に基づく高さ
+            // cameraWidth = 10; // 必要に応じて調整
+            // cameraHeight = (cameraWidth * window.innerHeight) / window.innerWidth; // アスペクト比に基づく高さ
+            
         });
     </script>
 </body>
