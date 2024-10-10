@@ -218,6 +218,10 @@
                 cube.rotation.x += 0.01; // X軸周りに回転
                 cube.rotation.y += 0.01; // Y軸周りに回転
                 // 画面外に出たキューブのインデックスを保存
+                if (cube.position.x > screenBounds.maxX *50 + 1|| cube.position.x < screenBounds.minX*50 -1||
+                    cube.position.y > screenBounds.minY *50  +1|| cube.position.y < screenBounds.maxY *50 -1) {
+                    toRemove.push(cube); // 削除対象として保存
+                }
                 // if (cube.position.x < -cameraWidth / 2 - 1 || cube.position.x > cameraWidth / 2 +1 ||
                 //     cube.position.y < -cameraHeight / 2 -1|| cube.position.y > cameraHeight / 2 +1) {
                 //     toRemove.push(cube); // 削除対象として保存
