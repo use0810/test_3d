@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js 3D表示</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // シーンの作成
+        const scene = new THREE.Scene();
+
+        // カメラの作成
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 5;
+
+        // レンダラーの作成
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+
+        // 立方体のジオメトリとマテリアルの作成する関数
+        const cubes = []
+        const maxCubes = 10;
+        function generateCube (x,y,z) {
+
+            if (cubes.length >= maxCubes) {
+              return; // キューブの最大数に達している場合は何もしない
+            }
+            const geometry = new THREE.BoxGeometry(1, 1, 1);
+            const material = new THREE.MeshBasicMaterial({ color: Math.random() * 0xffffff });
+            const cube = new THREE.Mesh(geometry, material);
+            cube.position.set(x,y,z); // クリックした位置に配置
+            cube.userData = { isDragging: false, velocity: new THREE.Vector3(0, 0, 0) };
+            scene.add(cube);
+            cubes.push(cube);
+        }
+        generateCube(0,0,0);
+
+        let selectedCube = null;
+        let isDragging = false;
+        let isTouching = false;
+        const startPos = new THREE.Vector2();
+
+        // マウス/タッチダウン時の処理
+        const onMouseDown = (event) => {
+            if (isTouching) return; // 既にタッチ中なら何もしない
+            isTouching = true; // タッチ開始フラグを立てる
+            const mouse = new THREE.Vector2();
+            if (event.touches) {
+                mouse.set(
+                    (event.touches[0].clientX / window.innerWidth) * 2 - 1,
+                    -(event.touches[0].clientY / window.innerHeight) * 2 + 1
+                );
+            } else {
+                mouse.set(
+                    (event.clientX / window.innerWidth) * 2 - 1,
+                    -(event.clientY / window.innerHeight) * 2 + 1
+                );
+            }
+
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(cubes);
+
+            if (intersects.length > 0) {
+                selectedCube = intersects[0].object;
+                // isDragging = true;
+                selectedCube.userData.velocity.set(0, 0, 0);
+                startPos.set(mouse.x, mouse.y); // 新しい位置を記録
+            }
+            console.log(startPos)
+        };
+
+        // マウス/タッチムーブ時の処理
+        const onMouseMove = (event) => {
+            // if (!isDragging || !selectedCube) return;
+            if (!selectedCube || !isTouching) return;
+            isDragging = true;
+
+            const mouse = new THREE.Vector2();
+            if (event.touches) {
+                mouse.set(
+                    (event.touches[0].clientX / window.innerWidth) * 2 - 1,
+                    -(event.touches[0].clientY / window.innerHeight) * 2 + 1
+                );
+            } else {
+                mouse.set(
+                    (event.clientX / window.innerWidth) * 2 - 1,
+                    -(event.clientY / window.innerHeight) * 2 + 1
+                );
+            }
+           
+
+            // const dx = mouse.x - (startPos.x / window.innerWidth) * 2 + 1;
+            // const dy = mouse.y - -(startPos.y / window.innerHeight) * 2 + 1;
+            const dx = (mouse.x - startPos.x) *0.05;
+            const dy = (mouse.y - startPos.y) *0.05;
+            console.log("dx :"+ dx)
+            console.log("dy :"+ dy)
+            selectedCube.userData.velocity.set(dx, dy, 0);
+            // startPos.set(mouse.x, mouse.y); // 新しい位置を記録
+        };
+
+        // マウス/タッチリリース時の処理
+        const onMouseUp = (event) => {
+          if (isTouching) { // タッチ中であれば
+              if (!isDragging) {
+                  const mouse = new THREE.Vector2();
+                  if (event.touches) {
+                      mouse.set(
+                          (event.touches[0].clientX / window.innerWidth) * 2 - 1,
+                          -(event.touches[0].clientY / window.innerHeight) * 2 + 1
+                      );
+                  } else {
+                      mouse.set(
+                          (event.clientX / window.innerWidth) * 2 - 1,
+                          -(event.clientY / window.innerHeight) * 2 + 1
+                      );
+                  }
+                // マウスの位置をワールド座標に変換
+                const raycaster = new THREE.Raycaster();
+                raycaster.setFromCamera(mouse, camera);
+                
+                // 平面との交差を計算
+                const intersection = new THREE.Vector3();
+                const planeNormal = new THREE.Vector3(0, 0, 1);
+                const planeZ = 0; // 平面のZ座標
+
+                // 平面を定義
+                const plane = new THREE.Plane(planeNormal, planeZ);
+                const distance = raycaster.ray.intersectPlane(plane, intersection);
+                
+                if (distance) {
+                    if (cubes.length < maxCubes) {
+                        // クリック位置にキューブを生成
+                        generateCube(intersection.x, intersection.y, intersection.z);
+                    }
+                }
+            }
+              isTouching = false; // タッチ終了フラグをリセット
+              isDragging = false; // ドラッグ終了フラグをリセット
+              selectedCube = null;
+          }
+        };
+
+        // イベントリスナーを設定
+        window.addEventListener('mousedown', onMouseDown);
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+        window.addEventListener('touchstart', onMouseDown);
+        window.addEventListener('touchmove', onMouseMove);
+        window.addEventListener('touchend', onMouseUp);
+
+
+        function checkCollision(cubeA, cubeB) {
+            const distance = cubeA.position.distanceTo(cubeB.position);
+            const combinedHalfSize = 0.5; // 各キューブの半分の幅
+
+            if (distance < combinedHalfSize * 2) {
+                // 衝突が検出された場合
+                const normal = new THREE.Vector3().subVectors(cubeB.position, cubeA.position).normalize();
+                const relativeVelocity = new THREE.Vector3().subVectors(cubeA.userData.velocity, cubeB.userData.velocity);
+
+                const speed = relativeVelocity.dot(normal);
+                if (speed < 0) return; // 反発する必要がない場合
+
+                const restitution = 1; // 反発係数
+                const impulse = (2 * speed) / (1 + 1); // 1+1は質量の合計
+                cubeA.userData.velocity.sub(normal.clone().multiplyScalar(impulse * restitution));
+                cubeB.userData.velocity.add(normal.clone().multiplyScalar(impulse * restitution));
+            }
+        }
+
+        // アニメーション設定
+        function animate() {
+            requestAnimationFrame(animate);
+            for (const cube of cubes) {
+                // 画面の境界で反射
+                if (cube.position.x > 5 || cube.position.x < -5) {
+                    cube.userData.velocity.x *= -1; // X方向で反射
+                }
+                if (cube.position.y > 5 || cube.position.y < -5) {
+                    cube.userData.velocity.y *= -1; // Y方向で反射
+                }
+                cube.rotation.x += 0.01; // X軸周りに回転
+                cube.rotation.y += 0.01; // Y軸周りに回転
+                cube.position.add(cube.userData.velocity);
+            }
+            // // キューブの位置を速度に基づいて更新
+            // if (selectedCube) {
+            //     selectedCube.position.add(selectedCube.userData.velocity.clone().multiplyScalar(0.1));
+            // }
+             // 衝突判定
+             for (let i = 0; i < cubes.length; i++) {
+                for (let j = i + 1; j < cubes.length; j++) {
+                    checkCollision(cubes[i], cubes[j]);
+                }
+            }
+
+            // シーンを描画
+            renderer.render(scene, camera);
+
+        }
+
+        animate();
+
+        // ウィンドウリサイズ時の処理
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
