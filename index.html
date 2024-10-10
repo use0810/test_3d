@@ -80,6 +80,7 @@
 
         // マウス/タッチムーブ時の処理
         const onMouseMove = (event) => {
+            event.preventDefault();
             // if (!isDragging || !selectedCube) return;
             if (!selectedCube || !isTouching) return;
             isDragging = true;
